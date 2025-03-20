@@ -26,15 +26,18 @@ async def send_welcome(message: Message):
 async def handle_successful_payment(message: Message):
     stars_spent = message.successful_payment.total_amount / 100  # Convert to Stars
     coins_to_add = stars_spent * 200  # Example: 1 Star = 200 Coins
-    user_id = message.from_user.id
 
+    user_id = message.from_user.id
     logging.info(f"💰 Payment received: {stars_spent} Stars from {user_id}")
     await message.reply(f"✅ Payment successful! {coins_to_add} coins have been added to your account.")
 
-async def main():
-    """ Main entry point for the bot """
-    logging.info("✅ Bot is now polling for messages...")
-    await dp.start_polling(bot)
+async def start_polling():
+    """ Start the bot polling loop separately """
+    try:
+        logging.info("✅ Bot is now polling for messages...")
+        await dp.start_polling(bot)
+    except Exception as e:
+        logging.error(f"❌ Bot polling crashed: {e}")
 
 # 🔹 Dummy Web Server to Keep Render Happy
 async def handle_request(request):
@@ -43,8 +46,15 @@ async def handle_request(request):
 app = web.Application()
 app.router.add_get("/", handle_request)
 
-if __name__ == "__main__":
+async def main():
     logging.info("🌐 Starting web server on port 8080...")
+    
+    # Start the bot polling in a separate asyncio task
     loop = asyncio.get_event_loop()
-    loop.create_task(main())
-    web.run_app(app, port=int(os.getenv("PORT", 8080)))  # Render requires a port
+    loop.create_task(start_polling())  
+
+    # Run the dummy web server
+    web.run_app(app, port=int(os.getenv("PORT", 8080)))
+
+if __name__ == "__main__":
+    asyncio.run(main())
