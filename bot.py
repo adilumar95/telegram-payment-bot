@@ -13,7 +13,7 @@ TOKEN = "7669712107:AAEWoE6dz7oa-n6u9p6PpnoMqtlWwqOU2us"
 bot = Bot(token=TOKEN, parse_mode="HTML")
 dp = Dispatcher()
 
-# 🔹 Add log to confirm bot is starting
+# Logging
 logging.basicConfig(level=logging.INFO)
 logging.info("🚀 Bot is starting...")
 
@@ -31,30 +31,26 @@ async def handle_successful_payment(message: Message):
     logging.info(f"💰 Payment received: {stars_spent} Stars from {user_id}")
     await message.reply(f"✅ Payment successful! {coins_to_add} coins have been added to your account.")
 
-async def start_polling():
-    """ Start the bot polling loop separately """
-    try:
-        logging.info("✅ Bot is now polling for messages...")
-        await dp.start_polling(bot)
-    except Exception as e:
-        logging.error(f"❌ Bot polling crashed: {e}")
-
 # 🔹 Dummy Web Server to Keep Render Happy
 async def handle_request(request):
     return web.Response(text="Bot is running!")
 
-app = web.Application()
-app.router.add_get("/", handle_request)
+async def run_web_server():
+    """ Starts a dummy web server for Render """
+    logging.info("🌐 Starting web server on port 8080...")
+    app = web.Application()
+    app.router.add_get("/", handle_request)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, port=int(os.getenv("PORT", 8080)))
+    await site.start()
 
 async def main():
-    logging.info("🌐 Starting web server on port 8080...")
-    
-    # Start the bot polling in a separate asyncio task
-    loop = asyncio.get_event_loop()
-    loop.create_task(start_polling())  
+    """ Start both the bot polling and the web server """
+    logging.info("✅ Starting bot polling and web server...")
+    asyncio.create_task(run_web_server())  # Run web server in the background
+    await dp.start_polling(bot)  # Start bot polling
 
-    # Run the dummy web server
-    web.run_app(app, port=int(os.getenv("PORT", 8080)))
-
+# 🔹 Start the bot and web server in the same event loop
 if __name__ == "__main__":
     asyncio.run(main())
